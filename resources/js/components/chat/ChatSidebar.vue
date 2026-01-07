@@ -5,8 +5,10 @@ import { Menu, Plus, X } from 'lucide-vue-next';
 export interface Chat {
     id: number;
     title: string;
-    lastMessage: string;
-    timestamp: Date;
+    last_message_at: string;
+    latest_message?: {
+        content: string;
+    };
 }
 
 export interface ChatSidebarProps {
@@ -23,40 +25,9 @@ const emit = defineEmits<{
     toggleSidebar: [];
 }>();
 
-const mockChats: Chat[] = [
-    {
-        id: 1,
-        title: 'Project Planning Discussion',
-        lastMessage: 'Let me help you break down the project milestones...',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30),
-    },
-    {
-        id: 2,
-        title: 'Code Review Assistant',
-        lastMessage: 'Here are some suggestions for improving your code...',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-    },
-    {
-        id: 3,
-        title: 'API Design Patterns',
-        lastMessage: 'RESTful API best practices include...',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-    },
-    {
-        id: 4,
-        title: 'Database Optimization',
-        lastMessage: 'Consider indexing these columns for better performance...',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
-    },
-    {
-        id: 5,
-        title: 'Security Best Practices',
-        lastMessage: 'Always validate user input and use parameterized queries...',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3),
-    },
-];
 
-const formatDate = (date: Date) => {
+const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -124,7 +95,7 @@ const formatDate = (date: Date) => {
         >
             <div class="space-y-1 pb-4">
                 <button
-                    v-for="chat in mockChats"
+                    v-for="chat in props.chats"
                     :key="chat.id"
                     @click="emit('selectChat', chat.id)"
                     :class="[
@@ -138,12 +109,13 @@ const formatDate = (date: Date) => {
                         {{ chat.title }}
                     </div>
                     <div
+                        v-if="chat.latest_message"
                         class="text-xs line-clamp-2 opacity-70"
                     >
-                        {{ chat.lastMessage }}
+                        {{ chat.latest_message.content }}
                     </div>
                     <div class="mt-1 text-xs opacity-50">
-                        {{ formatDate(chat.timestamp) }}
+                        {{ formatDate(chat.last_message_at) }}
                     </div>
                 </button>
             </div>
@@ -161,7 +133,7 @@ const formatDate = (date: Date) => {
             </button>
             <div class="mt-2 space-y-2">
                 <button
-                    v-for="(chat, index) in mockChats.slice(0, 5)"
+                    v-for="(chat, index) in props.chats.slice(0, 5)"
                     :key="chat.id"
                     @click="emit('selectChat', chat.id)"
                     :class="[
@@ -170,6 +142,7 @@ const formatDate = (date: Date) => {
                             ? 'bg-gray-800 text-gray-100'
                             : 'hover:bg-gray-800 text-gray-400',
                     ]"
+                    :title="chat.title"
                 >
                     <span class="text-xs font-medium">{{ index + 1 }}</span>
                 </button>

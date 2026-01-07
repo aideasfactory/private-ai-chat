@@ -5,6 +5,7 @@ import { Send, Paperclip } from 'lucide-vue-next';
 export interface ChatInputProps {
     disabled?: boolean;
     placeholder?: string;
+    attachedFiles?: File[];
 }
 
 const props = withDefaults(defineProps<ChatInputProps>(), {
@@ -14,7 +15,10 @@ const props = withDefaults(defineProps<ChatInputProps>(), {
 
 const emit = defineEmits<{
     sendMessage: [message: string];
+    fileSelect: [event: Event];
 }>();
+
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const message = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -59,12 +63,28 @@ const handleKeydown = (e: KeyboardEvent) => {
             <div
                 class="flex items-end gap-2 rounded-2xl border border-gray-700 bg-gray-800/50 p-2 focus-within:border-gray-600 transition-colors"
             >
+                <input
+                    ref="fileInputRef"
+                    type="file"
+                    multiple
+                    accept=".txt,.pdf,.doc,.docx,.json,.csv,.md"
+                    class="hidden"
+                    @change="emit('fileSelect', $event)"
+                    :disabled="disabled"
+                />
                 <button
                     type="button"
+                    @click="fileInputRef?.click()"
                     class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-700 hover:text-gray-300 transition-colors"
                     :disabled="disabled"
                 >
                     <Paperclip class="h-5 w-5" />
+                    <span
+                        v-if="props.attachedFiles && props.attachedFiles.length > 0"
+                        class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white"
+                    >
+                        {{ props.attachedFiles.length }}
+                    </span>
                 </button>
 
                 <textarea
