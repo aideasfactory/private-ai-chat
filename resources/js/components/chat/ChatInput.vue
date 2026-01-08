@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue';
-import { Send, Paperclip } from 'lucide-vue-next';
+import { Send, Paperclip, Book } from 'lucide-vue-next';
+import PromptLibraryPanel from '@/components/prompt-library/PromptLibraryPanel.vue';
 
 export interface ChatInputProps {
     disabled?: boolean;
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const promptLibraryOpen = ref(false);
 
 const message = ref('');
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -56,6 +58,38 @@ const handleKeydown = (e: KeyboardEvent) => {
         sendMessage();
     }
 };
+
+const togglePromptLibrary = () => {
+    promptLibraryOpen.value = !promptLibraryOpen.value;
+};
+
+const handleUsePrompt = (promptContent: string, promptTitle: string) => {
+    // Insert prompt content into textarea
+    if (message.value) {
+        message.value += '\n\n' + promptContent;
+    } else {
+        message.value = promptContent;
+    }
+    
+    // Adjust textarea height
+    nextTick(() => {
+        adjustTextareaHeight();
+        textareaRef.value?.focus();
+    });
+};
+
+const setMessage = (content: string) => {
+    message.value = content;
+    nextTick(() => {
+        adjustTextareaHeight();
+        textareaRef.value?.focus();
+    });
+};
+
+// Expose methods for parent component
+defineExpose({
+    setMessage
+});
 </script>
 
 <template>
@@ -86,6 +120,16 @@ const handleKeydown = (e: KeyboardEvent) => {
                     >
                         {{ props.attachedFiles.length }}
                     </span>
+                </button>
+
+                <button
+                    type="button"
+                    @click="togglePromptLibrary"
+                    class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-700 hover:text-gray-300 transition-colors"
+                    :disabled="disabled"
+                    title="Prompt Library"
+                >
+                    <Book class="h-5 w-5" />
                 </button>
 
                 <textarea
@@ -120,6 +164,13 @@ const handleKeydown = (e: KeyboardEvent) => {
                 Press Enter to send, Shift+Enter for new line
             </div>
         </div>
+
+        <!-- Prompt Library Panel -->
+        <PromptLibraryPanel
+            :is-open="promptLibraryOpen"
+            @close="promptLibraryOpen = false"
+            @use-prompt="handleUsePrompt"
+        />
     </div>
 </template>
 

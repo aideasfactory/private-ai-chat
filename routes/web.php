@@ -16,6 +16,11 @@ Route::get('dashboard', function () {
     ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('prompt-library', function () {
+    return Inertia::render('PromptLibrary');
+})->middleware(['auth', 'verified'])->name('prompt-library');
+
+
 require __DIR__.'/settings.php';
 
 // Test route for debugging

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Menu, Plus, X } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
+import { Menu, Plus, X, Book, History } from 'lucide-vue-next';
 
 export interface Chat {
     id: number;
@@ -93,31 +94,54 @@ const formatDate = (dateString: string) => {
             v-if="isOpen"
             class="flex-1 overflow-y-auto px-2"
         >
-            <div class="space-y-1 pb-4">
-                <button
-                    v-for="chat in props.chats"
-                    :key="chat.id"
-                    @click="emit('selectChat', chat.id)"
-                    :class="[
-                        'group relative w-full rounded-lg p-3 text-left transition-colors',
-                        props.selectedChatId === chat.id
-                            ? 'bg-gray-800 text-gray-100'
-                            : 'hover:bg-gray-800/50 text-gray-400',
-                    ]"
+            <!-- Navigation Section -->
+            <div class="space-y-1 mb-4">
+                <Link
+                    href="/prompt-library"
+                    class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-800/50 text-gray-400 hover:text-gray-300 block"
                 >
-                    <div class="mb-1 font-medium text-sm line-clamp-1">
-                        {{ chat.title }}
+                    <div class="flex items-center gap-3">
+                        <Book class="h-5 w-5" />
+                        <div class="flex-1">
+                            <div class="font-medium text-sm">Prompt Library</div>
+                            <div class="text-xs opacity-70">Browse & manage prompts</div>
+                        </div>
                     </div>
-                    <div
-                        v-if="chat.latest_message"
-                        class="text-xs line-clamp-2 opacity-70"
+                </Link>
+            </div>
+
+            <!-- Chats Section -->
+            <div class="border-t border-gray-800 pt-4">
+                <div class="flex items-center gap-2 px-3 pb-2">
+                    <History class="h-4 w-4 text-gray-500" />
+                    <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Recent Chats</span>
+                </div>
+                <div class="space-y-1 pb-4">
+                    <button
+                        v-for="chat in props.chats"
+                        :key="chat.id"
+                        @click="emit('selectChat', chat.id)"
+                        :class="[
+                            'group relative w-full rounded-lg p-3 text-left transition-colors',
+                            props.selectedChatId === chat.id
+                                ? 'bg-gray-800 text-gray-100'
+                                : 'hover:bg-gray-800/50 text-gray-400',
+                        ]"
                     >
-                        {{ chat.latest_message.content }}
-                    </div>
-                    <div class="mt-1 text-xs opacity-50">
-                        {{ formatDate(chat.last_message_at) }}
-                    </div>
-                </button>
+                        <div class="mb-1 font-medium text-sm line-clamp-1">
+                            {{ chat.title }}
+                        </div>
+                        <div
+                            v-if="chat.latest_message"
+                            class="text-xs line-clamp-2 opacity-70"
+                        >
+                            {{ chat.latest_message.content }}
+                        </div>
+                        <div class="mt-1 text-xs opacity-50">
+                            {{ formatDate(chat.last_message_at) }}
+                        </div>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -125,27 +149,36 @@ const formatDate = (dateString: string) => {
             v-if="!isOpen"
             class="hidden md:flex flex-1 flex-col items-center gap-2 overflow-y-auto px-2 py-2"
         >
+            <Link
+                href="/prompt-library"
+                class="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-gray-800 transition-colors"
+                title="Prompt Library"
+            >
+                <Book class="h-5 w-5 text-gray-400" />
+            </Link>
             <button
                 @click="emit('newChat')"
                 class="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-gray-800 transition-colors"
             >
                 <Plus class="h-5 w-5 text-gray-400" />
             </button>
-            <div class="mt-2 space-y-2">
-                <button
-                    v-for="(chat, index) in props.chats.slice(0, 5)"
-                    :key="chat.id"
-                    @click="emit('selectChat', chat.id)"
-                    :class="[
-                        'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
-                        props.selectedChatId === chat.id
-                            ? 'bg-gray-800 text-gray-100'
-                            : 'hover:bg-gray-800 text-gray-400',
-                    ]"
-                    :title="chat.title"
-                >
-                    <span class="text-xs font-medium">{{ index + 1 }}</span>
-                </button>
+            <div class="w-full border-t border-gray-800 mt-2 pt-2">
+                <div class="space-y-2">
+                    <button
+                        v-for="(chat, index) in props.chats.slice(0, 5)"
+                        :key="chat.id"
+                        @click="emit('selectChat', chat.id)"
+                        :class="[
+                            'flex h-10 w-10 items-center justify-center rounded-lg transition-colors',
+                            props.selectedChatId === chat.id
+                                ? 'bg-gray-800 text-gray-100'
+                                : 'hover:bg-gray-800 text-gray-400',
+                        ]"
+                        :title="chat.title"
+                    >
+                        <span class="text-xs font-medium">{{ index + 1 }}</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -10,6 +10,7 @@ import Toast from '@/components/ui/Toast.vue';
 const sidebarOpen = ref(true);
 const messagesContainer = ref<HTMLDivElement | null>(null);
 const attachedFiles = ref<File[]>([]);
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null);
 const toasts = ref<Array<{ id: number; message: string; type: 'success' | 'error' | 'info' }>>([]);
 
 const {
@@ -117,9 +118,27 @@ const toggleSidebar = () => {
     sidebarOpen.value = !sidebarOpen.value;
 };
 
+
 onMounted(async () => {
     await fetchChats();
-    if (chats.value.length > 0) {
+    
+    // Check URL parameters for chat selection and prompt content
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatId = urlParams.get('chat');
+    const promptContent = urlParams.get('prompt');
+    
+    if (chatId) {
+        await handleSelectChat(parseInt(chatId));
+        
+        // If there's a prompt parameter, populate the message input
+        if (promptContent) {
+            nextTick(() => {
+                if (chatInputRef.value) {
+                    chatInputRef.value.setMessage(decodeURIComponent(promptContent));
+                }
+            });
+        }
+    } else if (chats.value.length > 0) {
         await handleSelectChat(chats.value[0].id);
     }
 });
@@ -249,6 +268,7 @@ watch(messages, () => {
                 </div>
                 
                 <ChatInput
+                    ref="chatInputRef"
                     :disabled="sending || loading || !currentChat"
                     :attached-files="attachedFiles"
                     :placeholder="currentChat ? 'Send a message...' : 'Select a chat to start messaging'"
