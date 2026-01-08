@@ -5,10 +5,12 @@ import ChatMessage from './ChatMessage.vue';
 import ChatInput from './ChatInput.vue';
 import { Menu, MoreVertical, Trash2, Edit3 } from 'lucide-vue-next';
 import { useChat } from '@/composables/useChat';
+import Toast from '@/components/ui/Toast.vue';
 
 const sidebarOpen = ref(true);
 const messagesContainer = ref<HTMLDivElement | null>(null);
 const attachedFiles = ref<File[]>([]);
+const toasts = ref<Array<{ id: number; message: string; type: 'success' | 'error' | 'info' }>>([]);
 
 const {
     chats,
@@ -60,16 +62,21 @@ const handleSendMessage = async (content: string) => {
         return; // The initial message was already sent during chat creation
     }
     
+    // Clear input immediately for better UX
+    const filesSnapshot = [...attachedFiles.value];
+    attachedFiles.value = [];
+    
     try {
         await sendMessage(
             chatId,
             content,
-            attachedFiles.value.length > 0 ? attachedFiles.value : undefined
+            filesSnapshot.length > 0 ? filesSnapshot : undefined
         );
-        attachedFiles.value = [];
         scrollToBottom();
     } catch (err) {
         console.error('Failed to send message:', err);
+        // Restore files if there was an error
+        attachedFiles.value = filesSnapshot;
     }
 };
 
@@ -201,23 +208,19 @@ watch(messages, () => {
                         }"
                     />
 
-                    <div
-                        v-if="sending"
-                        class="flex gap-3"
-                    >
-                        <div
-                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-700 text-gray-200"
-                        >
-                            <span class="text-sm font-medium">AI</span>
-                        </div>
-                        <div
-                            class="rounded-2xl bg-gray-700/50 px-4 py-2 text-gray-100"
-                        >
-                            <div class="flex gap-1">
-                                <span class="animate-bounce animation-delay-0">.</span>
-                                <span class="animate-bounce animation-delay-200">.</span>
-                                <span class="animate-bounce animation-delay-400">.</span>
-                            </div>
+                </div>
+                
+                <!-- Error message display -->
+                <div
+                    v-if="error"
+                    class="mx-auto max-w-4xl"
+                >
+                    <div class="rounded-lg bg-red-900/20 border border-red-900/30 px-4 py-3 text-red-400 text-sm">
+                        <div class="flex items-center gap-2">
+                            <svg class="h-4 w-4 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                            </svg>
+                            {{ error }}
                         </div>
                     </div>
                 </div>
@@ -246,8 +249,9 @@ watch(messages, () => {
                 </div>
                 
                 <ChatInput
-                    :disabled="sending || loading"
+                    :disabled="sending || loading || !currentChat"
                     :attached-files="attachedFiles"
+                    :placeholder="currentChat ? 'Send a message...' : 'Select a chat to start messaging'"
                     @send-message="handleSendMessage"
                     @file-select="handleFileSelect"
                 />

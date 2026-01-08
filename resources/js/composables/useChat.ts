@@ -1,6 +1,15 @@
 import { ref, Ref } from 'vue';
 import axios from 'axios';
 
+// Initialize CSRF token for API calls
+async function initializeCsrf() {
+    try {
+        await axios.get('/sanctum/csrf-cookie');
+    } catch (error) {
+        console.warn('Failed to initialize CSRF token:', error);
+    }
+}
+
 export interface Chat {
     id: number;
     title: string;
@@ -67,6 +76,7 @@ export function useChat() {
         loading.value = true;
         error.value = null;
         try {
+            await initializeCsrf();
             const response = await axios.post('/api/chats', {
                 title: title || 'New Chat',
                 initial_message: initialMessage,
@@ -86,6 +96,7 @@ export function useChat() {
 
     const updateChat = async (chatId: number, data: Partial<Chat>) => {
         try {
+            await initializeCsrf();
             const response = await axios.put(`/api/chats/${chatId}`, data);
             const updatedChat = response.data;
             
@@ -110,6 +121,7 @@ export function useChat() {
 
     const deleteChat = async (chatId: number) => {
         try {
+            await initializeCsrf();
             await axios.delete(`/api/chats/${chatId}`);
             
             // Remove from chats list
@@ -131,8 +143,42 @@ export function useChat() {
         content: string,
         attachments?: File[]
     ): Promise<{ userMessage: Message; assistantMessage?: Message; error?: string }> => {
-        sending.value = true;
         error.value = null;
+        
+        // Create optimistic user message
+        const optimisticUserMessage: Message = {
+            id: Date.now(), // Temporary ID
+            chat_id: chatId,
+            role: 'user',
+            content,
+            attachments: [],
+            created_at: new Date().toISOString(),
+        };
+        
+        // Add user message immediately (optimistic update)
+        if (currentChat.value?.id === chatId) {
+            if (!currentChat.value.messages) {
+                currentChat.value.messages = [];
+            }
+            currentChat.value.messages.push(optimisticUserMessage);
+        }
+        
+        // Create optimistic typing indicator
+        const typingMessage: Message = {
+            id: Date.now() + 1,
+            chat_id: chatId,
+            role: 'assistant',
+            content: '...',
+            attachments: [],
+            created_at: new Date().toISOString(),
+        };
+        
+        // Add typing indicator
+        if (currentChat.value?.id === chatId) {
+            currentChat.value.messages.push(typingMessage);
+        }
+        
+        sending.value = true;
         
         const formData = new FormData();
         formData.append('content', content);
@@ -144,6 +190,7 @@ export function useChat() {
         }
         
         try {
+            await initializeCsrf();
             const response = await axios.post(
                 `/api/chats/${chatId}/messages`,
                 formData,
@@ -156,15 +203,19 @@ export function useChat() {
             
             const { user_message, assistant_message, chat } = response.data;
             
-            // Update current chat with new messages
-            if (currentChat.value?.id === chatId) {
-                if (!currentChat.value.messages) {
-                    currentChat.value.messages = [];
-                }
+            // Remove optimistic messages and replace with real ones
+            if (currentChat.value?.id === chatId && currentChat.value.messages) {
+                // Remove the optimistic user message and typing indicator
+                currentChat.value.messages = currentChat.value.messages.filter(
+                    msg => msg.id !== optimisticUserMessage.id && msg.id !== typingMessage.id
+                );
+                
+                // Add real messages
                 currentChat.value.messages.push(user_message);
                 if (assistant_message) {
                     currentChat.value.messages.push(assistant_message);
                 }
+                
                 currentChat.value.title = chat.title;
                 currentChat.value.last_message_at = chat.last_message_at;
             }
@@ -181,22 +232,37 @@ export function useChat() {
                 assistantMessage: assistant_message,
             };
         } catch (err: any) {
+            // Remove typing indicator on error
+            if (currentChat.value?.id === chatId && currentChat.value.messages) {
+                currentChat.value.messages = currentChat.value.messages.filter(
+                    msg => msg.id !== typingMessage.id
+                );
+            }
+            
             const errorMessage = err.response?.data?.error || err.response?.data?.message || 'Failed to send message';
             error.value = errorMessage;
             
             // If we got the user message back even with an error
             if (err.response?.data?.user_message) {
-                if (currentChat.value?.id === chatId) {
-                    if (!currentChat.value.messages) {
-                        currentChat.value.messages = [];
+                // Replace optimistic message with real one
+                if (currentChat.value?.id === chatId && currentChat.value.messages) {
+                    const index = currentChat.value.messages.findIndex(msg => msg.id === optimisticUserMessage.id);
+                    if (index !== -1) {
+                        currentChat.value.messages[index] = err.response.data.user_message;
                     }
-                    currentChat.value.messages.push(err.response.data.user_message);
                 }
                 
                 return {
                     userMessage: err.response.data.user_message,
                     error: errorMessage,
                 };
+            }
+            
+            // If complete failure, remove the optimistic message
+            if (currentChat.value?.id === chatId && currentChat.value.messages) {
+                currentChat.value.messages = currentChat.value.messages.filter(
+                    msg => msg.id !== optimisticUserMessage.id
+                );
             }
             
             throw err;
@@ -210,6 +276,7 @@ export function useChat() {
         formData.append('file', file);
         
         try {
+            await initializeCsrf();
             const response = await axios.post(
                 `/api/chats/${chatId}/upload`,
                 formData,

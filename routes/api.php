@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\ChatController;
 
-Route::middleware(['auth:web'])->group(function () {
+Route::middleware(['auth:sanctum'])->group(function () {
     // Chat routes
     Route::get('/chats', [ChatController::class, 'index'])->name('api.chats.index');
     Route::post('/chats', [ChatController::class, 'store'])->name('api.chats.store');

@@ -17,3 +17,12 @@ Route::get('dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 require __DIR__.'/settings.php';
+
+// Test route for debugging
+Route::get('/api/test-auth', function () {
+    return [
+        'authenticated' => auth()->check(),
+        'user' => auth()->user(),
+        'session' => session()->all(),
+    ];
+})->middleware('auth:sanctum');

@@ -57,7 +57,9 @@ class ChatController extends Controller
 
     public function show(Chat $chat)
     {
-        $this->authorize('view', $chat);
+        if ($chat->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
         $chat->load(['messages.attachments']);
 
@@ -66,7 +68,9 @@ class ChatController extends Controller
 
     public function update(Request $request, Chat $chat)
     {
-        $this->authorize('update', $chat);
+        if ($chat->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -81,7 +85,9 @@ class ChatController extends Controller
 
     public function destroy(Chat $chat)
     {
-        $this->authorize('delete', $chat);
+        if ($chat->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
         // Delete associated attachments from storage
         foreach ($chat->messages as $message) {
@@ -97,7 +103,9 @@ class ChatController extends Controller
 
     public function sendMessage(Request $request, Chat $chat)
     {
-        $this->authorize('update', $chat);
+        if ($chat->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
         $validated = $request->validate([
             'content' => 'required|string',
@@ -191,7 +199,9 @@ class ChatController extends Controller
 
     public function uploadDocument(Request $request, Chat $chat)
     {
-        $this->authorize('update', $chat);
+        if ($chat->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
 
         $validated = $request->validate([
             'file' => 'required|file|max:10240', // 10MB max

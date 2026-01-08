@@ -52,14 +52,19 @@ class OpenRouterService
             ];
         }
         
-        // Add conversation history
-        $recentMessages = $chat->messages()
+        // Add conversation history (get all messages except the most recent user message)
+        $allMessages = $chat->messages()
             ->with('attachments')
-            ->orderBy('created_at', 'desc')
-            ->limit(20)
-            ->get()
-            ->reverse();
+            ->orderBy('created_at', 'asc')
+            ->get();
+            
+        // Remove the last message if it's the user message we just added (to avoid duplication)
+        $recentMessages = $allMessages;
+        if ($allMessages->count() > 0 && $allMessages->last()->role === 'user' && $allMessages->last()->content === $userContent) {
+            $recentMessages = $allMessages->slice(0, -1);
+        }
         
+        // Add all previous messages
         foreach ($recentMessages as $message) {
             $messageContent = $message->content;
             
@@ -96,6 +101,13 @@ class OpenRouterService
 
     protected function callOpenRouter(array $messages, string $model): array
     {
+        // Debug: Log the messages being sent
+        \Log::info('OpenRouter messages being sent:', [
+            'model' => $model,
+            'message_count' => count($messages),
+            'messages' => $messages
+        ]);
+        
         $attempt = 0;
         $lastException = null;
         

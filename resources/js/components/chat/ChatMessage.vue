@@ -13,6 +13,8 @@ export interface ChatMessageProps {
 const props = defineProps<ChatMessageProps>();
 
 const isUser = computed(() => props.message.role === 'user');
+const isTyping = computed(() => props.message.content === '...' && props.message.role === 'assistant');
+
 const formattedTime = computed(() => {
     return new Intl.DateTimeFormat('en-US', {
         hour: 'numeric',
@@ -57,7 +59,12 @@ const formattedTime = computed(() => {
                         : 'bg-gray-700/50 text-gray-100',
                 ]"
             >
-                <p class="whitespace-pre-wrap break-words">
+                <div v-if="isTyping" class="flex gap-1 items-center">
+                    <span class="animate-bounce animation-delay-0">.</span>
+                    <span class="animate-bounce animation-delay-200">.</span>
+                    <span class="animate-bounce animation-delay-400">.</span>
+                </div>
+                <p v-else class="whitespace-pre-wrap break-words">
                     {{ message.content }}
                 </p>
             </div>

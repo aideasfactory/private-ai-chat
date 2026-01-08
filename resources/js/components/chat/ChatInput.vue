@@ -41,11 +41,12 @@ const handleInput = () => {
 const sendMessage = () => {
     const trimmedMessage = message.value.trim();
     if (trimmedMessage && !props.disabled) {
-        emit('sendMessage', trimmedMessage);
+        // Clear immediately for better UX
         message.value = '';
         nextTick(() => {
             adjustTextareaHeight();
         });
+        emit('sendMessage', trimmedMessage);
     }
 };
 
